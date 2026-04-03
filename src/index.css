@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply font-body antialiased;
+}
+
+.progress-track {
+  @apply sticky top-0 z-40 mb-4 h-1 w-full overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-800/80;
+}
+
+.progress-fill {
+  @apply h-full rounded-full bg-gradient-to-r from-brand-500 via-cyan-500 to-emerald-500 transition-[width] duration-200 ease-out;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.glass {
+  @apply rounded-2xl border border-white/40 bg-white/70 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/50;
+}
+
+.section-title {
+  @apply mb-4 font-display text-lg font-semibold tracking-tight;
+}
+
+.nav-chip {
+  @apply inline-flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+}
+
+.nav-chip-active {
+  @apply border-brand-100 bg-brand-50 text-brand-700 dark:border-brand-700/60 dark:bg-brand-700/20 dark:text-brand-100;
+}
+
+.highlight-mark {
+  @apply bg-amber-200/80 text-slate-900 dark:bg-amber-400/60;
+}
+
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.16) 0%,
+    rgba(148, 163, 184, 0.28) 50%,
+    rgba(148, 163, 184, 0.16) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-wave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .skeleton-shimmer {
+    animation: none;
+  }
+}
