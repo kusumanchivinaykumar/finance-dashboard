@@ -44,6 +44,17 @@ html {
   @apply border-brand-100 bg-brand-50 text-brand-700 dark:border-brand-700/60 dark:bg-brand-700/20 dark:text-brand-100;
 }
 
+.mobile-section-nav {
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.mobile-section-nav::-webkit-scrollbar {
+  display: none;
+}
+
 .highlight-mark {
   @apply bg-amber-200/80 text-slate-900 dark:bg-amber-400/60;
 }

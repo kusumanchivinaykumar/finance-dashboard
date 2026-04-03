@@ -70,8 +70,19 @@ export default function Dashboard() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [roleAnnouncement, setRoleAnnouncement] = useState('');
   const previousRoleRef = useRef(role);
+  const sectionRefs = useRef({});
+  const observerRafRef = useRef(null);
+  const pendingSectionRef = useRef(null);
   const prefersReducedMotion =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const setSectionRef = (id) => (node) => {
+    if (node) {
+      sectionRefs.current[id] = node;
+      return;
+    }
+    delete sectionRefs.current[id];
+  };
 
   const availableNavItems = useMemo(
     () => (isFocusMode ? navItems.filter((item) => item.id !== 'charts' && item.id !== 'insights') : navItems),
@@ -90,7 +101,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const sections = availableNavItems
-      .map((item) => document.getElementById(item.id))
+      .map((item) => sectionRefs.current[item.id])
       .filter(Boolean);
 
     const observer = new IntersectionObserver(
@@ -99,7 +110,15 @@ export default function Dashboard() {
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (visible?.target?.id) {
-          setActiveSection(visible.target.id);
+          pendingSectionRef.current = visible.target.id;
+          if (observerRafRef.current !== null) return;
+
+          observerRafRef.current = window.requestAnimationFrame(() => {
+            observerRafRef.current = null;
+            if (pendingSectionRef.current) {
+              setActiveSection((prev) => (prev === pendingSectionRef.current ? prev : pendingSectionRef.current));
+            }
+          });
         }
       },
       {
@@ -110,7 +129,13 @@ export default function Dashboard() {
 
     sections.forEach((section) => observer.observe(section));
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (observerRafRef.current !== null) {
+        window.cancelAnimationFrame(observerRafRef.current);
+        observerRafRef.current = null;
+      }
+    };
   }, [availableNavItems, isLoading]);
 
   useEffect(() => {
@@ -156,7 +181,7 @@ export default function Dashboard() {
 
   const handleNavigate = (id) => {
     setActiveSection(id);
-    const section = document.getElementById(id);
+    const section = sectionRefs.current[id];
     if (section) {
       const offset = getSectionScrollOffset();
       const top = section.getBoundingClientRect().top + window.scrollY - offset;
@@ -194,11 +219,12 @@ export default function Dashboard() {
     if (!mobileNav) return;
     const activeChip = mobileNav.querySelector(`[data-section-chip="${activeSection}"]`);
     if (!activeChip) return;
-    activeChip.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      inline: 'center',
-      block: 'nearest',
-    });
+
+    // Horizontal centering avoids browser-specific vertical page jumps from scrollIntoView on mobile.
+    const navRect = mobileNav.getBoundingClientRect();
+    const chipRect = activeChip.getBoundingClientRect();
+    const left = mobileNav.scrollLeft + chipRect.left - navRect.left - (navRect.width - chipRect.width) / 2;
+    mobileNav.scrollTo({ left: Math.max(0, left), behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   }, [activeSection]);
 
   const closeModal = () => {
@@ -306,7 +332,7 @@ export default function Dashboard() {
 
       <nav
         id="mobile-section-nav"
-        className="glass sticky top-3 z-30 mb-5 flex gap-2 overflow-x-auto p-2 lg:hidden"
+        className="mobile-section-nav glass sticky top-3 z-30 mb-5 flex gap-2 overflow-x-auto p-2 lg:hidden"
         aria-label="Section navigation"
       >
         {availableNavItems.map(({ id, label, icon: Icon }, index) => (
@@ -401,6 +427,7 @@ export default function Dashboard() {
               <motion.section
                 className="grid gap-4 md:grid-cols-3"
                 id="overview"
+                ref={setSectionRef('overview')}
                 {...skeletonReveal}
               >
                 {[0, 1, 2].map((item, index) => (
@@ -418,6 +445,7 @@ export default function Dashboard() {
               <motion.section
                 className="grid gap-4 xl:grid-cols-3"
                 id="charts"
+                ref={setSectionRef('charts')}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.08, duration: 0.28, ease: 'easeOut' }}
@@ -442,6 +470,7 @@ export default function Dashboard() {
               <motion.section
                 className="grid gap-4 md:grid-cols-3"
                 id="insights"
+                ref={setSectionRef('insights')}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.16, duration: 0.28, ease: 'easeOut' }}
@@ -461,6 +490,7 @@ export default function Dashboard() {
               <motion.section
                 className="glass h-72 p-5"
                 id="transactions"
+                ref={setSectionRef('transactions')}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.26, duration: 0.28, ease: 'easeOut' }}
@@ -470,12 +500,13 @@ export default function Dashboard() {
             </>
           ) : (
             <>
-              <motion.section id="overview" {...sectionReveal}>
+              <motion.section id="overview" ref={setSectionRef('overview')} {...sectionReveal}>
                 <DashboardCards />
               </motion.section>
               {isFocusMode ? null : (
                 <motion.section
                   id="charts"
+                  ref={setSectionRef('charts')}
                   {...sectionReveal}
                   transition={{ ...sectionReveal.transition, delay: 0.06 }}
                 >
@@ -487,6 +518,7 @@ export default function Dashboard() {
               {isFocusMode ? null : (
                 <motion.section
                   id="insights"
+                  ref={setSectionRef('insights')}
                   {...sectionReveal}
                   transition={{ ...sectionReveal.transition, delay: 0.1 }}
                 >
@@ -495,6 +527,7 @@ export default function Dashboard() {
               )}
               <motion.section
                 id="transactions"
+                ref={setSectionRef('transactions')}
                 {...sectionReveal}
                 transition={{ ...sectionReveal.transition, delay: 0.14 }}
               >
