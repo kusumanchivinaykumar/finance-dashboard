@@ -50,9 +50,19 @@ function loadState() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return initialState;
     const parsed = JSON.parse(stored);
+
+    const safeTransactions = Array.isArray(parsed.transactions)
+      ? parsed.transactions
+      : initialState.transactions;
+    const safeRole = parsed.role === 'admin' || parsed.role === 'viewer' ? parsed.role : initialState.role;
+    const safeTheme = parsed.theme === 'light' || parsed.theme === 'dark' ? parsed.theme : initialState.theme;
+
     return {
       ...initialState,
       ...parsed,
+      transactions: safeTransactions,
+      role: safeRole,
+      theme: safeTheme,
       filters: { ...initialState.filters, ...(parsed.filters || {}) },
     };
   } catch {
@@ -67,16 +77,21 @@ export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState, loadState);
 
   useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        transactions: state.transactions,
-        filters: state.filters,
-        role: state.role,
-        theme: state.theme,
-      }),
-    );
-  }, [state]);
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          transactions: state.transactions,
+          filters: state.filters,
+          role: state.role,
+          theme: state.theme,
+        }),
+      );
+    } catch (error) {
+      // Keep the app usable even when browser storage is unavailable/quota-limited.
+      console.warn('Failed to persist dashboard state to localStorage', error);
+    }
+  }, [state.transactions, state.filters, state.role, state.theme]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.theme === 'dark');
